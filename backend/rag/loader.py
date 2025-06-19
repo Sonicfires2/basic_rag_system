@@ -62,6 +62,7 @@ def load_and_split(
                 content = parts[2].lstrip('\n')
                 try:
                     metadata = yaml.safe_load(header) or {}
+                    print("Metadata:",metadata)
                 except yaml.YAMLError:
                     metadata = {}
         docs.append(Document(page_content=content, metadata=metadata))
@@ -82,6 +83,6 @@ def load_and_split(
     return split_docs
 
 if __name__ == "__main__":
-    path = "./data"
+    path = "../data"
     chunks = load_and_split(path)
     print(f"Loaded and split into {len(chunks)} chunks from {path}")

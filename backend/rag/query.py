@@ -18,7 +18,7 @@ from langchain.prompts import (
 load_dotenv()
 
 txt = """
-You are a research assistant. Whenever asked, use the provided context and to answer the question.
+You are a research assistant. Whenever asked, use the provided context to answer the question.
 """
 system_msg = SystemMessagePromptTemplate.from_template(txt)
 human_msg = HumanMessagePromptTemplate.from_template("""
@@ -27,6 +27,7 @@ Context:
 
 Question: {question}
 """)
+
 chat_prompt = ChatPromptTemplate.from_messages([system_msg, human_msg])
 
 class RecentRetriever(BaseRetriever):
@@ -42,8 +43,22 @@ class RecentRetriever(BaseRetriever):
 
     def _get_relevant_documents(self, query: str) -> List[Document]:
         docs = self._base.get_relevant_documents(query, k=self._fetch_k)
+        # keep only dated docs
         docs = [d for d in docs if d.metadata.get("date")]
+        # sort by date descending
         docs.sort(key=lambda d: d.metadata["date"], reverse=True)
+
+        # inject metadata into content for LLM
+        for d in docs:
+            md = d.metadata
+            header = (
+                f"Title: {md.get('title', '')}\n"
+                f"Date:  {md.get('date', '')}\n"
+                f"URL:   {md.get('url', '')}\n\n"
+            )
+            d.page_content = header + d.page_content
+
+        # return top-k most recent
         return docs[: self._return_k]
 
 
@@ -61,8 +76,13 @@ def main():
     )
     recent_ret = RecentRetriever(base_ret)
 
+    # debug: show base documents
+    base_docs = base_ret.get_relevant_documents("Altis Labs news", k=10)
+    for d in base_docs:
+        print(d.metadata, d.page_content[:100])
+    
     # Create LLM without system_message override
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.0)
+    llm = ChatOpenAI(model_name="gpt-4", temperature=0.0)
 
     # Build RetrievalQA with custom prompt
     qa_chain = RetrievalQA.from_chain_type(

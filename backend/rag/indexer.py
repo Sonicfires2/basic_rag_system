@@ -25,7 +25,7 @@ def build_index():
         persist_directory="vectordb/"
     )
     vectordb.persist()
-    print("✅ Vectorstore built and saved to ./vectordb")
+    print("Vectorstore built and saved to ./vectordb")
 
 if __name__ == "__main__":
     build_index()
